@@ -1,0 +1,78 @@
+import os
+import shutil
+import random
+from tqdm import tqdm
+
+
+def split_img(img_path, label_path, split_list):
+    try:
+        Data = './result'
+
+        train_img_dir = Data + '/images/train'
+        val_img_dir = Data + '/images/val'
+        test_img_dir = Data + '/images/test'
+
+        train_label_dir = Data + '/labels/train'
+        val_label_dir = Data + '/labels/val'
+        test_label_dir = Data + '/labels/test'
+
+
+        os.makedirs(train_img_dir)
+        os.makedirs(train_label_dir)
+        os.makedirs(val_img_dir)
+        os.makedirs(val_label_dir)
+        os.makedirs(test_img_dir)
+        os.makedirs(test_label_dir)
+
+    except:
+        print('文件目录已存在')
+
+    all_img = os.listdir(img_path)
+    all_img_path = [os.path.join(img_path, img) for img in all_img]
+    # 检查并删除没有对应标签的图像
+    valid_img_path = []
+    for img in all_img_path:
+        label = toLabelPath(img, label_path)
+        if os.path.exists(label):
+            valid_img_path.append(img)
+        else:
+            print(f"删除没有对应标签的图像: {img}")
+            os.remove(img)
+
+    train, val, test = split_list
+    train_img = random.sample(valid_img_path, int(train * len(valid_img_path)))
+    train_img_copy = [os.path.join(train_img_dir, img.split('\\')[-1]) for img in train_img]
+    train_label = [toLabelPath(img, label_path) for img in train_img]
+    train_label_copy = [os.path.join(train_label_dir, label.split('\\')[-1]) for label in train_label]
+    for i in tqdm(range(len(train_img)), desc='train ', ncols=80, unit='img'):
+        _copy(train_img[i], train_img_dir)
+        _copy(train_label[i], train_label_dir)
+        valid_img_path.remove(train_img[i])
+    val_img = random.sample(valid_img_path, int(val / (val + test) * len(valid_img_path)))
+    val_label = [toLabelPath(img, label_path) for img in val_img]
+    for i in tqdm(range(len(val_img)), desc='val ', ncols=80, unit='img'):
+        _copy(val_img[i], val_img_dir)
+        _copy(val_label[i], val_label_dir)
+        valid_img_path.remove(val_img[i])
+    test_img = valid_img_path
+    test_label = [toLabelPath(img, label_path) for img in test_img]
+    for i in tqdm(range(len(test_img)), desc='test ', ncols=80, unit='img'):
+        _copy(test_img[i], test_img_dir)
+        _copy(test_label[i], test_label_dir)
+
+
+def _copy(from_path, to_path):
+    shutil.copy(from_path, to_path)
+
+
+def toLabelPath(img_path, label_path):
+    img = img_path.split('\\')[-1]
+    label = img.split('.jpg')[0] + '.txt'
+    return os.path.join(label_path, label)
+
+
+if __name__ == '__main__':
+    img_path = r"C:\Users\21853\Desktop\25GCS_v5_并行增强\25GCS_v7\images"
+    label_path = r"C:\Users\21853\Desktop\25GCS_v5_并行增强\25GCS_v7\labels"
+    split_list = [0.7, 0.2, 0.1] 
+    split_img(img_path, label_path, split_list)
